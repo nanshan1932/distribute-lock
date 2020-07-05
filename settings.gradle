@@ -1,0 +1,5 @@
+rootProject.name = 'distribute-lock'
+include 'distribute-lock-core'
+include 'distribute-lock-redis-starter'
+include 'distribute-lock-sample'
+

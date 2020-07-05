@@ -1,0 +1,8 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /sample
+spring:
+  redis:
+    host: 127.0.0.1
+    port: 6379

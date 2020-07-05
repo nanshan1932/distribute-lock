@@ -1,0 +1,6 @@
+# Default ignored files
+/.gradle/
+/.idea/
+/distribute-lock-core/build/
+/distribute-lock-redis-starter/build/
+/distribute-lock-sample/build/
