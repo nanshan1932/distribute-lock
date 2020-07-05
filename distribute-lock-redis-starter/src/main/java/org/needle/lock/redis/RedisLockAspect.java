@@ -8,10 +8,12 @@ import org.needle.lock.core.DistributeLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.annotation.Order;
 import org.springframework.integration.redis.util.RedisLockRegistry;
 import org.springframework.util.StringUtils;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.concurrent.TimeUnit;
@@ -32,37 +34,18 @@ public class RedisLockAspect {
         Object output = null;
         try {
 
-            MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-            Method method = signature.getMethod();
-            Object[] arguments = joinPoint.getArgs();
-            Field[] field = arguments[0].getClass().getDeclaredFields();
-            String value = "";
-            for (int j = 0; j < field.length; j++) {
-
-                boolean fieldHasAnno = field[j].isAnnotationPresent(DistributeLock.class);
-                if (fieldHasAnno) {
-                    DistributeLock fieldAnno = field[j].getAnnotation(DistributeLock.class);
-                    //输出注解属性
-                    String name = field[j].getName();
-                    name = name.substring(0, 1).toUpperCase() + name.substring(1);
-                    Method m = arguments[0].getClass().getMethod("get" + name);
-                    value = (String) m.invoke(arguments[0]);
-                    System.out.println(value);
-                }
-            }
+            MethodSignature targetMethod = (MethodSignature) joinPoint.getSignature();
+            Method method = targetMethod.getMethod();
+            DistributeLock distributeLock = AnnotationUtils.findAnnotation(method, DistributeLock.class);
             // 获取锁的key
-            Object lockKey = value;
-            if (lockKey == null || StringUtils.isEmpty(lockKey)) {
-                lockKey = "publistLock";
-            }
-            Lock lock = redisLockRegistry.obtain(lockKey);
+            long timeout = distributeLock.timeout();
+            String name = distributeLock.name();
+
+            Lock lock = redisLockRegistry.obtain(name);
 
             try {
-                boolean ifLock = lock.tryLock(3, TimeUnit.SECONDS);
-//                mLog.info("线程[{}]是否获取到了锁：{ }", Thread.currentThread().getName(), ifLock);
-                /*
-                 * 可以获取到锁，说明当前没有线程在执行该方法
-                 */
+                boolean ifLock = lock.tryLock(timeout, TimeUnit.SECONDS);
+
                 if (ifLock) {
                     output = joinPoint.proceed();
                 } else {
